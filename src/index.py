@@ -5,10 +5,13 @@ import logging
 from discord.ext import commands
 import requests  # Import the requests library
 
+
 load_dotenv()
 
 intents = discord.Intents.default()
 intents.message_content = True
+intents.members = True
+
 handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
 
 cmd_pre = "!"
@@ -20,22 +23,29 @@ async def on_ready():
     print(f'We have logged in as {bot.user}')
     print(f'Commands: {bot.tree}')
 
-@bot.event
 async def on_message(message):
     if message.author == bot.user:
         return
     if message.content == cmd_pre + "hello":
-        await message.channel.send('Hello!')
+        await message.reply("Hello !",mention_author = True)
     await bot.process_commands(message)  # Ensure commands are processed
 
+async def on_member_join(member):
+        guild = member.guild
+        if guild.system_channel is not None:
+            to_send = f'Welcome {member.mention} to {guild.name}!'
+            await guild.system_channel.send(to_send)
+
+
 @bot.command()
-async def embed(ctx):
+async def invite(ctx):
     embed = discord.Embed(
-        title="Sample Embed",
-        url="https://realdrewdata.medium.com/",
-        description="This is an embed that will show how to build an embed and the different components",
+        title="Invite Ei-Gen To Your Server",
+        url="https://discord.com/oauth2/authorize?client_id=1264103775103225886&scope=bot+applications.commands&permissions=8",
+        description="Ei-Gen might require admin permission initially but in future it may or may not require the permission, Please Reconsider your decision as E-Gen Bot is still in its development stage. ",
         color=0xFFFFFF  # White color
     )
+    embed.set_image(url="https://cdn.discordapp.com/attachments/1266015865262833684/1266018747722891317/Screenshot_from_2024-07-25_18-16-33.png?ex=66acd9d6&is=66ab8856&hm=0ffbdb6c5e886b260044d8f57bcc1a5c348bf3ff29f06df57df319c29cc059b1&")
     await ctx.send(embed=embed)
 
 @bot.tree.command(name="name", description="description")
