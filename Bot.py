@@ -5,6 +5,7 @@ import logging
 from discord.ext import commands
 from Games.Rock_Paper_Scissors import rps
 from Generators.ImageGenerator import generate_image
+from Generators.TextGenerator import get_ai_response
 
 load_dotenv()
 
@@ -20,6 +21,7 @@ bot = commands.Bot(command_prefix=cmd_pre, intents=intents)
 
 bot.add_command(rps)
 bot.add_command(generate_image)
+bot.add_command(get_ai_response)
 
 @bot.event
 async def on_ready():
