@@ -7,6 +7,7 @@ from Games.Rock_Paper_Scissors import rps
 from Generators.ImageGenerator import generate_image
 from Generators.TextGenerator import get_ai_response
 from Utilities.Texttospeech import text_to_speech
+from Utilities.Minecraftserverstatus import mcserver
 
 load_dotenv()
 
@@ -19,7 +20,7 @@ handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w'
 cmd_pre = "!"
 bot = commands.Bot(command_prefix=cmd_pre, intents=intents)
 
-
+bot.add_command(mcserver)
 bot.add_command(rps)
 bot.add_command(generate_image)
 bot.add_command(get_ai_response)
