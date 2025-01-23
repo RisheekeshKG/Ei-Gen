@@ -26,7 +26,7 @@ async def get_ai_response(ctx, *, user_message: str):
     messages = [
         (
             "system",
-            "You are a helpful assistant  integrated as a Discord bot namely Eigen who is developed by Risheekesh. Help the user according to their needs and use Markdown language",
+            "You are a helpful assistant  integrated as a Discord bot namely Eigen who is developed by Risheekesh. Help the user according to their needs and use Markdown language , Respond in 4 lines",
         ),
         ("human", user_message),
     ]
