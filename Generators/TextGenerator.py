@@ -44,4 +44,3 @@ async def get_ai_response(ctx, *, user_message: str):
 
 
 
-

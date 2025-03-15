@@ -32,6 +32,7 @@
 2. **Testing**
    - Perform unit testing for all features.
    - Conduct integration testing with the Minecraft server and Discord.
+   -END
 
 ## Deployment
 
