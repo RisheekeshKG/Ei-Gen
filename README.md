@@ -48,7 +48,7 @@
 <img src="https://github.com/user-attachments/assets/4e3fa4f4-de35-4415-bd1b-f76953e0690d" width="500px">
 
 <h3>3. Text-to-Speech Generation</h3>
-<p>The <strong>ToS/strong> command converts a text prompt into an audio file that speaks the provided text. This feature leverages advanced AI voice synthesis for clear and natural-sounding output.</p>
+<p>The <strong>ToS</strong> command converts a text prompt into an audio file that speaks the provided text. This feature leverages advanced AI voice synthesis for clear and natural-sounding output.</p>
 
 <ul>
   <li>
