@@ -3,13 +3,16 @@ from discord.ext import commands
 from nltk.sentiment import SentimentIntensityAnalyzer
 import io
 import matplotlib.pyplot as plt
+import asyncio
+import random
 
 class SentimentModeration(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.sia = SentimentIntensityAnalyzer()
-        self.blacklist = {}
+        self.blacklist = {'idiot', 'dogwater', 'stupid'}
         self.warnings = {}
+        self.flagged_messages = []
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -17,50 +20,59 @@ class SentimentModeration(commands.Cog):
             return
 
         content = message.content.lower()
+        sentiment = self.sia.polarity_scores(content)
+        is_blacklisted = any(bad_word in content for bad_word in self.blacklist)
+        is_negative = sentiment['compound'] < -0.5
 
-        # Check if the message contains any bad words
-        if any(bad_word in content for bad_word in self.blacklist):
-            sentiment = self.sia.polarity_scores(content)
-            
-            # If the message has negative sentiment or contains a bad word
-            if sentiment['compound'] < -0.5:
-                await message.delete()
-                await message.channel.send(f"⚠️ Message from {message.author.name} deleted due to offensive language.")
-                await self.handle_warning(message, is_severe=True)
-            else:
-                await self.handle_warning(message, is_severe=False)
+        if is_blacklisted or is_negative:
+            self.flagged_messages.append((message.author, message.content, is_blacklisted, is_negative))
+            await message.delete()
+            await message.channel.send(f"⚠️ Message from {message.author.name} deleted for violating community guidelines.")
+            await self.handle_warning(message, severe=is_negative)
 
-    async def handle_warning(self, message, is_severe):
+        if len(self.flagged_messages) > 30:
+            self.flagged_messages.pop(0)
+
+    async def handle_warning(self, message, severe=False):
         user = message.author
-        if is_severe:
-            # Severe messages trigger immediate deletion and punishment
-            await message.channel.send(f"⚠️ {user.mention}, your message was deleted due to offensive language.")
-            if user not in self.warnings:
-                self.warnings[user] = 1
-            else:
-                self.warnings[user] += 1
-            if self.warnings[user] >= 3:
-                await message.author.add_roles(discord.utils.get(message.guild.roles, name="Muted"))
-                await message.channel.send(f"{user.mention} has been muted for repeated offenses.")
-        else:
-            # Less severe messages just trigger a warning
-            if user not in self.warnings:
-                self.warnings[user] = 1
-                await message.channel.send(f"⚠️ {user.mention}, please refrain from using inappropriate language.")
-            else:
-                self.warnings[user] += 1
+        guild = message.guild
+        mute_role = discord.utils.get(guild.roles, name="Timeout")
+        mod_roles = [role for role in guild.roles if role.name.lower() == "moderator"]
+        mod = random.choice(mod_roles) if mod_roles else None
 
-            if self.warnings[user] >= 3:
-                await message.author.add_roles(discord.utils.get(message.guild.roles, name="Muted"))
-                await message.channel.send(f"{user.mention} has been muted for repeated offenses.")
+        if user in self.warnings:
+            self.warnings[user] += 1
+            if self.warnings[user] >= 5:
+                if mute_role:
+                    await user.add_roles(mute_role)
+                    await message.channel.send(f"{mod.mention if mod else ''} {user.name} has been muted temporarily for repeated offenses.")
+                    await asyncio.sleep(30)
+                    await user.remove_roles(mute_role)
+                del self.warnings[user]
+            else:
+                remaining = 5 - self.warnings[user]
+                await message.channel.send(f"⚠️ {user.mention}, you have {remaining} warning{'s' if remaining > 1 else ''} remaining.")
+        else:
+            self.warnings[user] = 1
+            await message.channel.send(f"⚠️ {user.mention}, this is your first warning. You have 4 warnings remaining.")
 
     @commands.command(name="emotions")
     async def emotions(self, ctx):
-        await ctx.defer()
-
-        negative, blacklist_hits, both, clean = 0, 0, 0, 0
+        negative, blacklist_hits, clean = 0, 0, 0
         flagged = []
 
+        # Analyze deleted messages
+        for author, content, is_blacklist, is_negative in self.flagged_messages:
+            if is_blacklist:
+                blacklist_hits += 1
+                flagged.append(f"🚫 Blacklist | {author.name}: {content}")
+            elif is_negative:
+                negative += 1
+                flagged.append(f"😠 Negative | {author.name}: {content}")
+            else:
+                clean += 1
+
+        # Analyze recent visible messages
         try:
             async for msg in ctx.channel.history(limit=30):
                 if msg.author.bot:
@@ -70,27 +82,25 @@ class SentimentModeration(commands.Cog):
                 sentiment = self.sia.polarity_scores(content)
                 is_negative = sentiment['compound'] < -0.5
 
-                if is_negative and is_blacklist:
-                    both += 1
-                    flagged.append(f"❌ Both | {msg.author.name}: {msg.content}")
+                if is_blacklist:
+                    blacklist_hits += 1
+                    flagged.append(f"🚫 Blacklist | {msg.author.name}: {msg.content}")
                 elif is_negative:
                     negative += 1
                     flagged.append(f"😠 Negative | {msg.author.name}: {msg.content}")
-                elif is_blacklist:
-                    blacklist_hits += 1
-                    flagged.append(f"🚫 Blacklist | {msg.author.name}: {msg.content}")
                 else:
                     clean += 1
         except Exception as e:
             await ctx.send(f"An error occurred while processing messages: {e}")
             return
 
-        labels = ['Negative', 'Blacklist', 'Both', 'Clean']
-        values = [negative, blacklist_hits, both, clean]
+        # Plotting
+        labels = ['Negative', 'Blacklist', 'Clean']
+        values = [negative, blacklist_hits, clean]
         fig, ax = plt.subplots()
-        ax.bar(labels, values, color=['orange', 'red', 'purple', 'green'])
+        ax.bar(labels, values, color=['orange', 'red', 'green'])
         ax.set_ylabel('Number of Messages')
-        ax.set_title('Chat Emotion Summary (Last 30 Messages)')
+        ax.set_title('Chat Emotion Summary (Recent Messages)')
         buf = io.BytesIO()
         plt.savefig(buf, format='png')
         buf.seek(0)
