@@ -8,6 +8,8 @@ from Generators.ImageGenerator import generate_image
 from Generators.TextGenerator import get_ai_response
 from Utilities.Texttospeech import text_to_speech
 from Utilities.Minecraftserverstatus import mcserver
+import nltk
+nltk.download('vader_lexicon')
 
 load_dotenv()
 
@@ -28,9 +30,15 @@ bot.add_command(text_to_speech)
 
 @bot.event
 async def on_ready():
+    try:
+        await bot.load_extension("Moderation.sentiment_analysis")
+        print("Extension loaded successfully")
+    except Exception as e:
+        print(f"Error loading extension: {e}")
     await bot.tree.sync()
     await bot.change_presence(status=discord.Status.online, activity=discord.Game(name=f"Ei-Gen, type {cmd_pre}help"))
     print(f'We have logged in as {bot.user}')
+
 
 @bot.event
 async def on_message(message):
@@ -87,10 +95,11 @@ async def status(interaction: discord.Interaction):
 async def about(interaction: discord.Interaction):
     embed = discord.Embed(
         title="Ei-Gen Bot",
-        description="This bot is made by ___hyphen___ and void.jsx. It is still in Development. Only a few commands are available at the moment. Type !help for help.",
+        description="This bot is made by Risheekesh , Chandhru and Asif . It is still in Development. Only a few commands are available at the moment. Type !help for help.",
         color=0xFFFFFF
     )
     await interaction.response.send_message(embed=embed)
+
 
 
 
